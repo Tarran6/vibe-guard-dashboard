@@ -32,6 +32,7 @@ const CartesianGrid = dynamic(
   () => import('recharts').then((mod) => mod.CartesianGrid),
   { ssr: false }
 );
+
 const mockGrowth = [
   { day: 'Feb 15', scans: 1240 },
   { day: 'Feb 16', scans: 2890 },
@@ -78,11 +79,13 @@ export default function VibeGuardDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-12">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#00ff9f] to-[#00b36b] rounded-2xl flex items-center justify-center shield-icon">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#00ff9f] to-[#00b36b] rounded-2xl flex items-center justify-center">
               <Shield className="w-7 h-7 text-black" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold neon-text">VibeGuard AI</h1>
+              <h1 className="text-4xl font-bold" style={{ textShadow: '0 0 10px #00ff9f, 0 0 20px #00ff9f' }}>
+                VibeGuard AI
+              </h1>
               <p className="text-[#00ff9f99] text-sm">Neural Security Sentinel • opBNB Mainnet</p>
             </div>
           </div>
