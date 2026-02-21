@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #050505;
+  color: #00ff9f;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.card {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid #00ff9f33;
+  box-shadow: 0 0 15px rgba(0, 255, 159, 0.1);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: #00ff9f;
+  box-shadow: 0 0 25px rgba(0, 255, 159, 0.3);
+  transform: translateY(-2px);
+}
+
+.neon-text {
+  text-shadow: 0 0 10px #00ff9f, 0 0 20px #00ff9f;
+}
+
+.shield-icon {
+  filter: drop-shadow(0 0 8px #00ff9f);
+}
