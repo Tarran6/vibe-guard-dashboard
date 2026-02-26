@@ -4,23 +4,54 @@ import { useState, useEffect, useRef } from 'react';
 import { Shield, Users, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-const mockGrowth = [
-  { day: 'Feb 15', scans: 1240 }, { day: 'Feb 16', scans: 2890 }, { day: 'Feb 17', scans: 4520 },
-  { day: 'Feb 18', scans: 6710 }, { day: 'Feb 19', scans: 8430 }, { day: 'Feb 20', scans: 10200 },
-  { day: 'Feb 21', scans: 12450 },
-];
+const API_BASE = 'https://vibeguard-ai-production-7512.up.railway.app'; // замените на ваш URL, если нужно
+
+// Форматирование больших чисел (K, M)
+const formatNumber = (num: number): string => {
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+  if (num >= 1_000) return (num / 1_000).toFixed(1) + 'K';
+  return num.toString();
+};
 
 export default function VibeGuardDashboard() {
   const [metrics, setMetrics] = useState({ scans: 0, wallets: 0, prevented: 0, active: 0 });
-  const [recentScans] = useState([
-    { time: '2m ago', contract: '0x8f3...a1b2', score: 92, status: 'SAFE' },
-    { time: '7m ago', contract: '0x4d9...c3e4', score: 12, status: 'DRAINER' },
-    { time: '14m ago', contract: '0x2a7...f93', score: 98, status: 'SAFE' },
-  ]);
+  const [bnbPrice, setBnbPrice] = useState(600);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Анимированные счётчики
+  // Функция загрузки данных с API
+  const fetchData = async () => {
+    try {
+      const [statsRes, globalRes] = await Promise.all([
+        fetch(`${API_BASE}/api/stats`),
+        fetch(`${API_BASE}/api/global`)
+      ]);
+      const stats = await statsRes.json();
+      const global = await globalRes.json();
+
+      setMetrics({
+        scans: stats.blocks,           // или другое поле, которое хотите показывать
+        wallets: stats.wallets,
+        prevented: global.total_protected_usd, // сумма в долларах
+        active: stats.nft_minted
+      });
+      setBnbPrice(stats.bnb_price);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to fetch stats', err);
+      setLoading(false);
+    }
+  };
+
+  // Загрузка при монтировании и каждые 30 секунд
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Анимированные счётчики (оставляем как есть)
   const animateValue = (start: number, end: number, duration: number, setter: (val: number) => void) => {
     let startTimestamp: number | null = null;
     const step = (timestamp: number) => {
@@ -34,13 +65,15 @@ export default function VibeGuardDashboard() {
   };
 
   useEffect(() => {
-    animateValue(0, 12450, 1800, (v) => setMetrics(prev => ({...prev, scans: v})));
-    animateValue(0, 1420, 2000, (v) => setMetrics(prev => ({...prev, wallets: v})));
-    animateValue(0, 142, 2200, (v) => setMetrics(prev => ({...prev, prevented: v})));
-    animateValue(0, 873, 2400, (v) => setMetrics(prev => ({...prev, active: v})));
-  }, []);
+    if (!loading) {
+      animateValue(0, metrics.scans, 1800, (v) => setMetrics(prev => ({ ...prev, scans: v })));
+      animateValue(0, metrics.wallets, 2000, (v) => setMetrics(prev => ({ ...prev, wallets: v })));
+      animateValue(0, metrics.prevented, 2200, (v) => setMetrics(prev => ({ ...prev, prevented: v })));
+      animateValue(0, metrics.active, 2400, (v) => setMetrics(prev => ({ ...prev, active: v })));
+    }
+  }, [loading, metrics.scans, metrics.wallets, metrics.prevented, metrics.active]);
 
-  // Particles background
+  // Particles background (оставляем без изменений)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -77,10 +110,15 @@ export default function VibeGuardDashboard() {
     animate();
   }, []);
 
-  const fetchMetrics = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    await fetchData();
+    setRefreshing(false);
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white overflow-hidden relative">
@@ -105,7 +143,7 @@ export default function VibeGuardDashboard() {
               <div className="w-3 h-3 bg-[#00ff9f] rounded-full animate-ping" />
               LIVE ON opBNB
             </div>
-            <button onClick={fetchMetrics} className="flex items-center gap-2 px-6 py-3 bg-[#00ff9f10] hover:bg-[#00ff9f20] border border-[#00ff9f] rounded-xl transition-all">
+            <button onClick={handleRefresh} className="flex items-center gap-2 px-6 py-3 bg-[#00ff9f10] hover:bg-[#00ff9f20] border border-[#00ff9f] rounded-xl transition-all">
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
@@ -117,8 +155,8 @@ export default function VibeGuardDashboard() {
           {[
             { icon: TrendingUp, label: "TOTAL SCANS", value: metrics.scans, color: "#00ff9f" },
             { icon: Users, label: "SHIELDED WALLETS", value: metrics.wallets, color: "#00ff9f" },
-            { icon: AlertTriangle, label: "PREVENTED LOSSES", value: `$${metrics.prevented}M`, color: "#ff3366" },
-            { icon: Shield, label: "ACTIVE PROTECTION", value: metrics.active, color: "#00ff9f" },
+            { icon: AlertTriangle, label: "PREVENTED LOSSES", value: `$${formatNumber(metrics.prevented)}`, color: "#ff3366" },
+            { icon: Shield, label: "ACTIVE GUARDIANS", value: metrics.active, color: "#00ff9f" },
           ].map((item, i) => (
             <div key={i} className="card group p-8 rounded-3xl border border-[#00ff9f30] hover:border-[#00ff9f] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_#00ff9f50]">
               <div className="flex justify-between items-start">
@@ -134,7 +172,7 @@ export default function VibeGuardDashboard() {
           ))}
         </div>
 
-        {/* Chart + Recent */}
+        {/* Chart + Recent (оставляем моковые, но можно заменить позже) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 card p-8 rounded-3xl">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
@@ -142,7 +180,11 @@ export default function VibeGuardDashboard() {
             </h2>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockGrowth}>
+                <LineChart data={[
+                  { day: 'Feb 15', scans: 1240 }, { day: 'Feb 16', scans: 2890 }, { day: 'Feb 17', scans: 4520 },
+                  { day: 'Feb 18', scans: 6710 }, { day: 'Feb 19', scans: 8430 }, { day: 'Feb 20', scans: 10200 },
+                  { day: 'Feb 21', scans: 12450 },
+                ]}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#00ff9f15" />
                   <XAxis dataKey="day" stroke="#00ff9f66" />
                   <YAxis stroke="#00ff9f66" />
@@ -156,7 +198,11 @@ export default function VibeGuardDashboard() {
           <div className="card p-8 rounded-3xl">
             <h2 className="text-2xl font-semibold mb-6">RECENT SCANS</h2>
             <div className="space-y-5">
-              {recentScans.map((scan, i) => (
+              {[
+                { time: '2m ago', contract: '0x8f3...a1b2', score: 92, status: 'SAFE' },
+                { time: '7m ago', contract: '0x4d9...c3e4', score: 12, status: 'DRAINER' },
+                { time: '14m ago', contract: '0x2a7...f93', score: 98, status: 'SAFE' },
+              ].map((scan, i) => (
                 <div key={i} className="flex justify-between items-center border-b border-[#00ff9f10] pb-5 last:border-0">
                   <div>
                     <p className="font-mono text-xs text-[#00ff9f80]">{scan.time}</p>
