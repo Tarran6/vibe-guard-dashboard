@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Users, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Shield, Users, TrendingUp, DollarSign, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const API_BASE = 'https://vibeguard-ai-production-7512.up.railway.app'; // замените на ваш URL, если нужно
@@ -14,7 +14,12 @@ const formatNumber = (num: number): string => {
 };
 
 export default function VibeGuardDashboard() {
-  const [metrics, setMetrics] = useState({ scans: 0, wallets: 0, prevented: 0, active: 0 });
+  const [metrics, setMetrics] = useState({
+    scans: 0,
+    wallets: 0,
+    total_analyzed: 0,
+    active: 0
+  });
   const [bnbPrice, setBnbPrice] = useState(600);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,17 +28,13 @@ export default function VibeGuardDashboard() {
   // Функция загрузки данных с API
   const fetchData = async () => {
     try {
-      const [statsRes, globalRes] = await Promise.all([
-        fetch(`${API_BASE}/api/stats`),
-        fetch(`${API_BASE}/api/global`)
-      ]);
-      const stats = await statsRes.json();
-      const global = await globalRes.json();
+      const res = await fetch(`${API_BASE}/api/stats`);
+      const stats = await res.json();
 
       setMetrics({
-        scans: stats.blocks,           // или другое поле, которое хотите показывать
+        scans: stats.blocks,
         wallets: stats.wallets,
-        prevented: global.total_protected_usd, // сумма в долларах
+        total_analyzed: stats.total_analyzed_usd,
         active: stats.nft_minted
       });
       setBnbPrice(stats.bnb_price);
@@ -51,7 +52,7 @@ export default function VibeGuardDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Анимированные счётчики (оставляем как есть)
+  // Анимированные счётчики
   const animateValue = (start: number, end: number, duration: number, setter: (val: number) => void) => {
     let startTimestamp: number | null = null;
     const step = (timestamp: number) => {
@@ -68,12 +69,12 @@ export default function VibeGuardDashboard() {
     if (!loading) {
       animateValue(0, metrics.scans, 1800, (v) => setMetrics(prev => ({ ...prev, scans: v })));
       animateValue(0, metrics.wallets, 2000, (v) => setMetrics(prev => ({ ...prev, wallets: v })));
-      animateValue(0, metrics.prevented, 2200, (v) => setMetrics(prev => ({ ...prev, prevented: v })));
+      animateValue(0, metrics.total_analyzed, 2200, (v) => setMetrics(prev => ({ ...prev, total_analyzed: v })));
       animateValue(0, metrics.active, 2400, (v) => setMetrics(prev => ({ ...prev, active: v })));
     }
-  }, [loading, metrics.scans, metrics.wallets, metrics.prevented, metrics.active]);
+  }, [loading, metrics.scans, metrics.wallets, metrics.total_analyzed, metrics.active]);
 
-  // Particles background (оставляем без изменений)
+  // Particles background
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -155,7 +156,7 @@ export default function VibeGuardDashboard() {
           {[
             { icon: TrendingUp, label: "TOTAL SCANS", value: metrics.scans, color: "#00ff9f" },
             { icon: Users, label: "SHIELDED WALLETS", value: metrics.wallets, color: "#00ff9f" },
-            { icon: AlertTriangle, label: "PREVENTED LOSSES", value: `$${formatNumber(metrics.prevented)}`, color: "#ff3366" },
+            { icon: DollarSign, label: "TOTAL VALUE ANALYZED", value: `$${formatNumber(metrics.total_analyzed)}`, color: "#ff3366" },
             { icon: Shield, label: "ACTIVE GUARDIANS", value: metrics.active, color: "#00ff9f" },
           ].map((item, i) => (
             <div key={i} className="card group p-8 rounded-3xl border border-[#00ff9f30] hover:border-[#00ff9f] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_#00ff9f50]">
@@ -172,7 +173,7 @@ export default function VibeGuardDashboard() {
           ))}
         </div>
 
-        {/* Chart + Recent (оставляем моковые, но можно заменить позже) */}
+        {/* Chart + Recent (оставляем моковые) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 card p-8 rounded-3xl">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
@@ -215,17 +216,20 @@ export default function VibeGuardDashboard() {
                     </p>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-16 text-center">
+          <a href="https://t.me/VibeGuard_AI_bot?start=dashboard" target="_blank" rel="noopener noreferrer">
+            <button className="px-16 py-6 bg-gradient-to-r from-[#00ff9f] to-[#00cc77] text-black font-black text-2xl rounded-3xl hover:scale-110 transition-all shadow-2xl shadow-[#00ff9f80]">
+              SHIELD MY WALLET NOW
+            </button>
+          </a>
+          <p className="mt-6 text-[#00ff9f60] text-sm">Powered by Gemini 2.0 + Grok 4 • Protected by opBNB</p>
         </div>
       </div>
-
-      <div className="mt-16 text-center">
-        <a href="https://t.me/VibeGuard_AI_bot?start=dashboard" target="_blank" rel="noopener noreferrer">
-          <button className="px-16 py-6 bg-gradient-to-r from-[#00ff9f] to-[#00cc77] text-black font-black text-2xl rounded-3xl hover:scale-110 transition-all shadow-2xl shadow-[#00ff9f80]">
-            SHIELD MY WALLET NOW
-          </button>
-        </a>
-        <p className="mt-6 text-[#00ff9f60] text-sm">Powered by Gemini 2.0 + Grok 4 • Protected by opBNB</p>
-      </div>
     </div>
-  </div>
-);
+  );
+}
