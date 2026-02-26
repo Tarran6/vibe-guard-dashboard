@@ -215,18 +215,17 @@ export default function VibeGuardDashboard() {
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
         </div>
+      </div>
 
-        <div className="mt-16 text-center">
+      <div className="mt-16 text-center">
+        <a href="https://t.me/VibeGuard_AI_bot?start=dashboard" target="_blank" rel="noopener noreferrer">
           <button className="px-16 py-6 bg-gradient-to-r from-[#00ff9f] to-[#00cc77] text-black font-black text-2xl rounded-3xl hover:scale-110 transition-all shadow-2xl shadow-[#00ff9f80]">
             SHIELD MY WALLET NOW
           </button>
-          <p className="mt-6 text-[#00ff9f60] text-sm">Powered by Gemini 2.0 + Grok 4 • Protected by opBNB</p>
-        </div>
+        </a>
+        <p className="mt-6 text-[#00ff9f60] text-sm">Powered by Gemini 2.0 + Grok 4 • Protected by opBNB</p>
       </div>
     </div>
-  );
-}
+  </div>
+);
