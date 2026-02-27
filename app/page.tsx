@@ -31,8 +31,9 @@ export default function VibeGuardDashboard() {
       const res = await fetch(`${API_BASE}/api/stats`);
       const stats = await res.json();
       console.log('API response:', stats);
+      console.log('Data to set:', stats.blocks, stats.wallets, stats.total_analyzed_usd, stats.nft_minted);
 
-      // Устанавливаем новые значения напрямую, но с плавной анимацией через requestAnimationFrame
+      // Устанавливаем новые значения напрямую
       setMetrics({
         scans: stats.blocks,
         wallets: stats.wallets,
