@@ -23,24 +23,19 @@ export default function VibeGuardDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
 
-  // Функция загрузки данных с API
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/stats`);
       const stats = await res.json();
-      console.log('API response:', stats);
-      console.log('Data to set:', stats.blocks, stats.wallets, stats.total_analyzed_usd, stats.nft_minted);
-
-      // Устанавливаем новые значения напрямую
+      console.log('API response:', stats); 
       setMetrics({
-        scans: stats.blocks,
-        wallets: stats.wallets,
+        scans: stats.blocks || 0,
+        wallets: stats.wallets || 0,
         total_analyzed: stats.total_analyzed_usd || 0,
-        active: stats.nft_minted
+        active: stats.nft_minted || 0
       });
-      setBnbPrice(stats.bnb_price);
+      setBnbPrice(stats.bnb_price || 600);
       setLoading(false);
     } catch (err) {
       console.error('Failed to fetch stats', err);
@@ -48,14 +43,12 @@ export default function VibeGuardDashboard() {
     }
   };
 
-  // Загрузка при монтировании и каждые 30 секунд
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Particles background
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -83,7 +76,6 @@ export default function VibeGuardDashboard() {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-
         p.y += p.speed;
         if (p.y > canvas.height) p.y = 0;
       });
@@ -105,7 +97,6 @@ export default function VibeGuardDashboard() {
   return (
     <div className="min-h-screen bg-[#050505] text-white overflow-hidden relative">
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />
-
       <div className="relative z-10 max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
@@ -154,7 +145,7 @@ export default function VibeGuardDashboard() {
           ))}
         </div>
 
-        {/* Chart + Recent (оставляем моковые) */}
+        {/* Chart + Recent */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 card p-8 rounded-3xl">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
