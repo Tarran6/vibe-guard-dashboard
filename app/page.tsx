@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Shield, Users, TrendingUp, DollarSign, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-const API_BASE = 'https://vibeguard-ai-production-7512.up.railway.app'; // замените на ваш URL, если нужно
+const API_BASE = 'https://vibeguard-ai-production-7512.up.railway.app';
 
-// Форматирование больших чисел (K, M)
 const formatNumber = (num: number): string => {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
   if (num >= 1_000) return (num / 1_000).toFixed(1) + 'K';
@@ -14,7 +13,15 @@ const formatNumber = (num: number): string => {
 };
 
 export default function VibeGuardDashboard() {
-  const [metrics, setMetrics] = useState({
+  // Текущие отображаемые значения (анимированные)
+  const [displayMetrics, setDisplayMetrics] = useState({
+    scans: 0,
+    wallets: 0,
+    total_analyzed: 0,
+    active: 0
+  });
+  // Целевые значения (из API)
+  const [targetMetrics, setTargetMetrics] = useState({
     scans: 0,
     wallets: 0,
     total_analyzed: 0,
@@ -24,6 +31,7 @@ export default function VibeGuardDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
 
   // Функция загрузки данных с API
   const fetchData = async () => {
@@ -31,10 +39,10 @@ export default function VibeGuardDashboard() {
       const res = await fetch(`${API_BASE}/api/stats`);
       const stats = await res.json();
 
-      setMetrics({
+      setTargetMetrics({
         scans: stats.blocks,
         wallets: stats.wallets,
-        total_analyzed: stats.total_analyzed_usd,
+        total_analyzed: stats.total_analyzed_usd || 0,
         active: stats.nft_minted
       });
       setBnbPrice(stats.bnb_price);
@@ -52,29 +60,41 @@ export default function VibeGuardDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Анимированные счётчики
-  const animateValue = (start: number, end: number, duration: number, setter: (val: number) => void) => {
-    let startTimestamp: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const value = Math.floor(progress * (end - start) + start);
-      setter(value);
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  };
-
+  // Плавная анимация от текущих значений к целевым
   useEffect(() => {
-    if (!loading) {
-      animateValue(0, metrics.scans, 1800, (v) => setMetrics(prev => ({ ...prev, scans: v })));
-      animateValue(0, metrics.wallets, 2000, (v) => setMetrics(prev => ({ ...prev, wallets: v })));
-      animateValue(0, metrics.total_analyzed, 2200, (v) => setMetrics(prev => ({ ...prev, total_analyzed: v })));
-      animateValue(0, metrics.active, 2400, (v) => setMetrics(prev => ({ ...prev, active: v })));
-    }
-  }, [loading, metrics.scans, metrics.wallets, metrics.total_analyzed, metrics.active]);
+    if (loading) return;
 
-  // Particles background
+    const startTime = performance.now();
+    const duration = 2000; // мс
+    const startValues = { ...displayMetrics };
+    const endValues = { ...targetMetrics };
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      setDisplayMetrics({
+        scans: Math.floor(startValues.scans + (endValues.scans - startValues.scans) * progress),
+        wallets: Math.floor(startValues.wallets + (endValues.wallets - startValues.wallets) * progress),
+        total_analyzed: startValues.total_analyzed + (endValues.total_analyzed - startValues.total_analyzed) * progress,
+        active: Math.floor(startValues.active + (endValues.active - startValues.active) * progress),
+      });
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        // Финальная установка точных значений
+        setDisplayMetrics(endValues);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [targetMetrics, loading]); // Запускаем при изменении целевых значений
+
+  // Particles background (без изменений)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -95,7 +115,7 @@ export default function VibeGuardDashboard() {
       });
     }
 
-    const animate = () => {
+    const animateParticles = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach(p => {
         ctx.fillStyle = `rgba(0, 243, 255, ${p.opacity})`;
@@ -106,9 +126,9 @@ export default function VibeGuardDashboard() {
         p.y += p.speed;
         if (p.y > canvas.height) p.y = 0;
       });
-      requestAnimationFrame(animate);
+      requestAnimationFrame(animateParticles);
     };
-    animate();
+    animateParticles();
   }, []);
 
   const handleRefresh = async () => {
@@ -154,10 +174,10 @@ export default function VibeGuardDashboard() {
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {[
-            { icon: TrendingUp, label: "TOTAL SCANS", value: metrics.scans, color: "#00ff9f" },
-            { icon: Users, label: "SHIELDED WALLETS", value: metrics.wallets, color: "#00ff9f" },
-            { icon: DollarSign, label: "TOTAL VALUE ANALYZED", value: `$${formatNumber(metrics.total_analyzed)}`, color: "#ff3366" },
-            { icon: Shield, label: "ACTIVE GUARDIANS", value: metrics.active, color: "#00ff9f" },
+            { icon: TrendingUp, label: "TOTAL SCANS", value: displayMetrics.scans, color: "#00ff9f" },
+            { icon: Users, label: "SHIELDED WALLETS", value: displayMetrics.wallets, color: "#00ff9f" },
+            { icon: DollarSign, label: "TOTAL VALUE ANALYZED", value: `$${formatNumber(displayMetrics.total_analyzed)}`, color: "#ff3366" },
+            { icon: Shield, label: "ACTIVE GUARDIANS", value: displayMetrics.active, color: "#00ff9f" },
           ].map((item, i) => (
             <div key={i} className="card group p-8 rounded-3xl border border-[#00ff9f30] hover:border-[#00ff9f] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_#00ff9f50]">
               <div className="flex justify-between items-start">
