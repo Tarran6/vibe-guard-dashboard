@@ -199,7 +199,7 @@ export default function VibeGuardDashboard() {
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
               <TrendingUp className="w-6 h-6" /> SCAN GROWTH — LAST 7 DAYS
             </h2>
-            <div className="h-96">
+            <div className="h-96 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={[
                   { day: 'Feb 15', scans: 1240 }, { day: 'Feb 16', scans: 2890 }, { day: 'Feb 17', scans: 4520 },
