@@ -30,6 +30,7 @@ export default function VibeGuardDashboard() {
     try {
       const res = await fetch(`${API_BASE}/api/stats`);
       const stats = await res.json();
+      console.log('API response:', stats);
 
       // Устанавливаем новые значения напрямую, но с плавной анимацией через requestAnimationFrame
       setMetrics({
