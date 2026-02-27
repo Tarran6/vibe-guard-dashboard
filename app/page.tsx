@@ -151,17 +151,17 @@ export default function VibeGuardDashboard() {
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
               <TrendingUp className="w-6 h-6" /> SCAN GROWTH — LAST 7 DAYS
             </h2>
-            <div className="h-96 min-h-0">
+            <div className="h-96 min-h-0 overflow-hidden">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={[
                   { day: 'Feb 15', scans: 1240 }, { day: 'Feb 16', scans: 2890 }, { day: 'Feb 17', scans: 4520 },
                   { day: 'Feb 18', scans: 6710 }, { day: 'Feb 19', scans: 8430 }, { day: 'Feb 20', scans: 10200 },
                   { day: 'Feb 21', scans: 12450 },
-                ]}>
+                ]} margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#00ff9f15" />
                   <XAxis dataKey="day" stroke="#00ff9f66" />
                   <YAxis stroke="#00ff9f66" />
-                  <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px' }} />
+                  <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px' }} wrapperStyle={{ maxWidth: '90%' }} />
                   <Line type="monotone" dataKey="scans" stroke="#00ff9f" strokeWidth={5} dot={{ fill: '#00ff9f', r: 7 }} />
                 </LineChart>
               </ResponsiveContainer>
